@@ -1,0 +1,23 @@
+# Build folders
+bin/
+obj/
+
+# Visual Studio
+.vs/
+
+# User files
+*.user
+*.suo
+
+# Logs
+*.log
+
+# Environment files
+.env
+
+# Node modules (if frontend is inside same repo)
+node_modules/
+
+# OS files
+.DS_Store
+Thumbs.db

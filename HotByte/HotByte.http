@@ -1,0 +1,6 @@
+@HotByte_HostAddress = http://localhost:5117
+
+GET {{HotByte_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
