@@ -1,65 +1,83 @@
-import { useState } from "react";
+import { useReducer } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { Mail, Lock, KeyRound } from "lucide-react";
+import { toast } from "react-toastify";
 import API from "../../api/api";
+import { formReducer, resetInitialState } from "../../reducers/authReducer";
 
 function ResetPassword() {
   const navigate = useNavigate();
+  const [form, dispatch] = useReducer(formReducer, resetInitialState);
 
-  const [form, setForm] = useState({
-    email: "",
-    token: "",
-    newPassword: "",
-  });
+  const updateField = (field, value) => {
+    dispatch({ type: "UPDATE", field, value });
+  };
 
   const submitReset = async (e) => {
     e.preventDefault();
 
     try {
       await API.post("/Auth/reset-password", form);
-      alert("Password reset successful. Please login.");
-      navigate("/login");
+      toast.success("Password changed successfully 🔑");
+
+      setTimeout(() => {
+        navigate("/login");
+      }, 1200);
     } catch {
-      alert("Password reset failed");
+      toast.error("Password reset failed");
     }
   };
 
   return (
-    <main className="auth-page">
-      <section className="auth-right">
-        <form className="auth-card" onSubmit={submitReset}>
-          <p className="tagline">Reset Password</p>
+    <main className="auth-center-page">
+      <form className="auth-card auth-center-card shadow-lg" onSubmit={submitReset}>
+        <div className="text-center mb-4">
+          <div className="auth-icon mx-auto">
+            <Lock />
+          </div>
+          <p className="tagline mt-3">Reset Password</p>
           <h2>Create New Password</h2>
+          <p className="text-muted">Use your reset token to update password.</p>
+        </div>
 
+        <div className="input-group-custom">
+          <Mail size={18} />
           <input
             type="email"
             placeholder="Registered email"
             value={form.email}
-            onChange={(e) => setForm({ ...form, email: e.target.value })}
+            onChange={(e) => updateField("email", e.target.value)}
             required
           />
+        </div>
 
+        <div className="input-group-custom">
+          <KeyRound size={18} />
           <input
             placeholder="Reset token"
             value={form.token}
-            onChange={(e) => setForm({ ...form, token: e.target.value })}
+            onChange={(e) => updateField("token", e.target.value)}
             required
           />
+        </div>
 
+        <div className="input-group-custom">
+          <Lock size={18} />
           <input
             type="password"
             placeholder="New password"
             value={form.newPassword}
-            onChange={(e) => setForm({ ...form, newPassword: e.target.value })}
+            onChange={(e) => updateField("newPassword", e.target.value)}
             required
           />
+        </div>
 
-          <button className="primary-btn full">Reset Password</button>
+        <button className="primary-btn full mt-3">Reset Password</button>
 
-          <p className="auth-switch">
-            Back to <Link to="/login">Login</Link>
-          </p>
-        </form>
-      </section>
+        <p className="auth-switch mt-4">
+          Back to <Link to="/login">Login</Link>
+        </p>
+      </form>
     </main>
   );
 }

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Search, SlidersHorizontal } from "lucide-react";
+import { toast } from "react-toastify";
 import API from "../../api/api";
 import { useUser } from "../../context/UserContext";
 
@@ -13,6 +14,9 @@ function Menu() {
   const [loading, setLoading] = useState(true);
   const [menus, setMenus] = useState([]);
   const [categories, setCategories] = useState([]);
+
+  const [suggestions, setSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   const [filters, setFilters] = useState({
     keyword: "",
@@ -33,10 +37,10 @@ function Menu() {
         },
       });
 
-      setMenus(res.data);
+      setMenus(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.log(err);
-      alert("Unable to load menu");
+      toast.error("Unable to load menu");
     } finally {
       setLoading(false);
     }
@@ -45,7 +49,7 @@ function Menu() {
   const loadCategories = async () => {
     try {
       const res = await API.get("/Category");
-      setCategories(res.data);
+      setCategories(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.log(err);
     }
@@ -55,6 +59,40 @@ function Menu() {
     loadMenus();
     loadCategories();
   }, []);
+
+  const handleSearchChange = (value) => {
+    setFilters({
+      ...filters,
+      keyword: value,
+    });
+
+    if (!value.trim()) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+
+    const filtered = menus
+      .filter(
+        (item) =>
+          item.itemName?.toLowerCase().includes(value.toLowerCase()) ||
+          item.categoryName?.toLowerCase().includes(value.toLowerCase()) ||
+          item.restaurantName?.toLowerCase().includes(value.toLowerCase())
+      )
+      .slice(0, 6);
+
+    setSuggestions(filtered);
+    setShowSuggestions(true);
+  };
+
+  const selectSuggestion = (item) => {
+    setFilters({
+      ...filters,
+      keyword: item.itemName,
+    });
+
+    setShowSuggestions(false);
+  };
 
   const handleSearch = async () => {
     try {
@@ -71,10 +109,11 @@ function Menu() {
         },
       });
 
-      setMenus(res.data);
+      setMenus(Array.isArray(res.data) ? res.data : []);
+      setShowSuggestions(false);
     } catch (err) {
       console.log(err);
-      alert("Search failed");
+      toast.error("Search failed");
     } finally {
       setLoading(false);
     }
@@ -93,10 +132,10 @@ function Menu() {
 
       const res = await API.get("/Menu/filter", { params });
 
-      setMenus(res.data);
+      setMenus(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.log(err);
-      alert("Filter failed");
+      toast.error("Filter failed");
     } finally {
       setLoading(false);
     }
@@ -111,17 +150,24 @@ function Menu() {
       maxPrice: "",
     });
 
+    setSuggestions([]);
+    setShowSuggestions(false);
     loadMenus();
   };
 
   const addToCart = async (item) => {
     if (!user) {
-      alert("Please login as user to add items to cart");
+      toast.warning("Please login first");
       return;
     }
 
     if (user.role !== "User") {
-      alert("Only users can add items to cart");
+      toast.warning("Only users can add items to cart");
+      return;
+    }
+
+    if (!item.isAvailable) {
+      toast.info("This item is currently unavailable");
       return;
     }
 
@@ -131,10 +177,10 @@ function Menu() {
         quantity: 1,
       });
 
-      alert(`${item.itemName} added to cart`);
+      toast.success(`${item.itemName} added to cart 🛒`);
     } catch (err) {
       console.log(err);
-      alert("Unable to add item to cart");
+      toast.error("Unable to add item to cart");
     }
   };
 
@@ -145,7 +191,8 @@ function Menu() {
           <p className="tagline">Explore Food</p>
           <h1>Discover dishes from HotByte restaurants</h1>
           <p>
-            Search by food name, filter by category, price range, and veg/non-veg.
+            Search by food name, filter by category, price range, and
+            veg/non-veg.
           </p>
         </div>
 
@@ -153,21 +200,48 @@ function Menu() {
       </div>
 
       <section className="filter-card">
-        <div className="search-box">
+        <div className="search-box suggestion-wrapper">
           <Search size={20} />
 
           <input
             placeholder="Search dosa, burger, biryani..."
             value={filters.keyword}
-            onChange={(e) =>
-              setFilters({
-                ...filters,
-                keyword: e.target.value,
-              })
-            }
+            onChange={(e) => handleSearchChange(e.target.value)}
+            onFocus={() => filters.keyword && setShowSuggestions(true)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleSearch();
+            }}
           />
 
           <button onClick={handleSearch}>Search</button>
+
+          {showSuggestions && suggestions.length > 0 && (
+            <div className="suggestion-box">
+              {suggestions.map((item) => (
+                <div
+                  key={item.menuItemId}
+                  className="suggestion-item"
+                  onClick={() => selectSuggestion(item)}
+                >
+                  <div className="suggestion-img">
+                    {item.imageUrl ? (
+                      <img src={item.imageUrl} alt={item.itemName} />
+                    ) : (
+                      "🍽️"
+                    )}
+                  </div>
+
+                  <div>
+                    <strong>{item.itemName}</strong>
+                    <small>
+                      {item.categoryName || "Food"} • ₹
+                      {item.discountPrice || item.price}
+                    </small>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="advanced-filters">
@@ -183,10 +257,7 @@ function Menu() {
             <option value="">All Categories</option>
 
             {categories.map((category) => (
-              <option
-                key={category.categoryId}
-                value={category.categoryId}
-              >
+              <option key={category.categoryId} value={category.categoryId}>
                 {category.categoryName}
               </option>
             ))}
@@ -251,11 +322,7 @@ function Menu() {
       ) : (
         <section className="menu-grid">
           {menus.map((item) => (
-            <MenuCard
-              key={item.menuItemId}
-              item={item}
-              onAdd={addToCart}
-            />
+            <MenuCard key={item.menuItemId} item={item} onAdd={addToCart} />
           ))}
         </section>
       )}

@@ -9,18 +9,18 @@ function MenuCard({ item, onAdd }) {
         ) : (
           <span>🍽️</span>
         )}
+
+        <span className={item.isVeg ? "food-badge veg" : "food-badge nonveg"}>
+          {item.isVeg ? "Veg" : "Non-Veg"}
+        </span>
       </div>
 
       <div className="menu-content">
-        <div className="menu-head">
-          <h3>{item.itemName}</h3>
+        <h3>{item.itemName}</h3>
 
-          <span className={item.isVeg ? "veg" : "nonveg"}>
-            {item.isVeg ? "Veg" : "Non-Veg"}
-          </span>
-        </div>
-
-        <p>{item.description}</p>
+        <p className="menu-desc">
+          {item.description || "Delicious food item from HotByte."}
+        </p>
 
         <div className="chips">
           <span>{item.categoryName || "Food"}</span>
@@ -31,10 +31,7 @@ function MenuCard({ item, onAdd }) {
         <div className="price-row">
           <div>
             <strong>₹{item.discountPrice || item.price}</strong>
-
-            {item.discountPrice && (
-              <small> ₹{item.price}</small>
-            )}
+            {item.discountPrice && <small>₹{item.price}</small>}
           </div>
 
           {onAdd && (

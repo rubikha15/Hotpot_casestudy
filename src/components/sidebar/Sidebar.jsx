@@ -1,4 +1,5 @@
 import { NavLink } from "react-router-dom";
+import { Star } from "lucide-react";
 import {
   LayoutDashboard,
   Store,
@@ -28,6 +29,7 @@ function Sidebar() {
     { name: "Dashboard", path: "/restaurant/dashboard", icon: <LayoutDashboard /> },
     { name: "My Menu", path: "/restaurant/menu", icon: <Utensils /> },
     { name: "Orders", path: "/restaurant/orders", icon: <ShoppingBag /> },
+    { name: "Reviews", path: "/restaurant/reviews", icon: <Star /> },
   ];
 
   const links = user?.role === "Admin" ? adminLinks : restaurantLinks;

@@ -38,8 +38,16 @@ function MyMenu() {
         API.get("/Category"),
       ]);
 
-      setMenus(Array.isArray(menuRes.data) ? menuRes.data : []);
       setCategories(Array.isArray(categoryRes.data) ? categoryRes.data : []);
+
+      const menuData = Array.isArray(menuRes.data) ? menuRes.data : [];
+
+      setMenus(
+        menuData.map((m) => ({
+          ...m,
+          categoryId: m.categoryId || m.category?.categoryId || "",
+        }))
+      );
     } catch (err) {
       console.log(err.response?.data || err);
       alert("Unable to load restaurant menu");
@@ -58,7 +66,7 @@ function MyMenu() {
   const buildPayload = (data) => ({
     itemName: data.itemName || "",
     description: data.description || "",
-    restaurantId: Number(user.restaurantId),
+    restaurantId: Number(data.restaurantId || user.restaurantId),
     price: Number(data.price || 0),
     discountPrice: Number(data.discountPrice || 0),
     imageUrl: data.imageUrl || "",
@@ -67,7 +75,7 @@ function MyMenu() {
     availabilityTime: data.availabilityTime || "",
     isVeg: data.isVeg === true || data.isVeg === "true",
     isAvailable: data.isAvailable === true || data.isAvailable === "true",
-    categoryId: Number(data.categoryId || 0),
+    categoryId: Number(data.categoryId || form.categoryId || categories[0]?.categoryId || 1),
   });
 
   const resetForm = () => {
@@ -103,7 +111,7 @@ function MyMenu() {
     setForm({
       itemName: menu.itemName || "",
       description: menu.description || "",
-      restaurantId: Number(user.restaurantId),
+      restaurantId: Number(menu.restaurantId || user.restaurantId),
       price: menu.price ?? "",
       discountPrice: menu.discountPrice ?? "",
       imageUrl: menu.imageUrl || "",
@@ -112,7 +120,7 @@ function MyMenu() {
       availabilityTime: menu.availabilityTime || "",
       isVeg: Boolean(menu.isVeg),
       isAvailable: Boolean(menu.isAvailable),
-      categoryId: menu.categoryId ?? "",
+      categoryId: menu.categoryId || categories[0]?.categoryId || "",
     });
 
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -132,16 +140,31 @@ function MyMenu() {
   };
 
   const toggleAvailability = async (menu) => {
+    const nextAvailability = !Boolean(menu.isAvailable);
+
     const payload = buildPayload({
       ...menu,
-      restaurantId: Number(user.restaurantId),
-      isAvailable: !Boolean(menu.isAvailable),
+      restaurantId: Number(menu.restaurantId || user.restaurantId),
+      categoryId: menu.categoryId || categories[0]?.categoryId || 1,
+      isAvailable: nextAvailability,
     });
 
     try {
       await API.put(`/Menu/${menu.menuItemId}`, payload);
-      alert("Availability updated");
-      loadData();
+
+      setMenus((prev) =>
+        prev.map((m) =>
+          m.menuItemId === menu.menuItemId
+            ? { ...m, isAvailable: nextAvailability }
+            : m
+        )
+      );
+
+      alert(
+        nextAvailability
+          ? "Menu item marked as Available"
+          : "Menu item marked as Unavailable"
+      );
     } catch (err) {
       console.log(err.response?.data || err);
       alert(err.response?.data || "Unable to change availability");
@@ -301,7 +324,8 @@ function MyMenu() {
                 {menu.isVeg ? "Veg" : "Non-Veg"}
               </p>
               <small>
-                Category ID: {menu.categoryId} • {menu.availabilityTime}
+                Category ID: {menu.categoryId || "N/A"} •{" "}
+                {menu.availabilityTime}
               </small>
             </div>
 
@@ -318,7 +342,11 @@ function MyMenu() {
                 {menu.isAvailable ? "Mark Unavailable" : "Mark Available"}
               </button>
 
-              <button type="button" className="icon-btn" onClick={() => editMenu(menu)}>
+              <button
+                type="button"
+                className="icon-btn"
+                onClick={() => editMenu(menu)}
+              >
                 <Pencil size={18} />
               </button>
 

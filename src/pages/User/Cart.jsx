@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { Trash2, Minus, Plus, ShoppingBag } from "lucide-react";
+import { toast } from "react-toastify";
 import API from "../../api/api";
 import { useUser } from "../../context/UserContext";
 import Loader from "../../components/common/Loader";
 import EmptyState from "../../components/common/EmptyState";
+import qrImage from "../../assets/payment/upi-qr.png";
 
 function Cart() {
   const { user } = useUser();
@@ -36,7 +38,7 @@ function Cart() {
     } catch (err) {
       console.log(err);
       setCartItems([]);
-      alert("Unable to load cart");
+      toast.error("Unable to load cart");
     } finally {
       setLoading(false);
     }
@@ -48,33 +50,66 @@ function Cart() {
 
   const updateQty = async (cartItemId, newQty) => {
     if (newQty < 1) return;
-    await API.put(`/Cart/${cartItemId}`, { quantity: Number(newQty) });
-    loadCart();
+
+    try {
+      await API.put(`/Cart/${cartItemId}`, { quantity: Number(newQty) });
+      loadCart();
+    } catch {
+      toast.error("Quantity update failed");
+    }
   };
 
   const removeItem = async (cartItemId) => {
-    await API.delete(`/Cart/${cartItemId}`);
-    loadCart();
+    try {
+      await API.delete(`/Cart/${cartItemId}`);
+      toast.success("Item removed");
+      loadCart();
+    } catch {
+      toast.error("Remove item failed");
+    }
   };
 
   const clearCart = async () => {
-    await API.delete(`/Cart/clear/${user.id}`);
-    loadCart();
+    try {
+      await API.delete(`/Cart/clear/${user.id}`);
+      toast.success("Cart cleared");
+      loadCart();
+    } catch {
+      toast.error("Clear cart failed");
+    }
   };
 
   const placeOrder = async () => {
-    if (safeCartItems.length === 0) return alert("Cart is empty");
-    if (!checkout.shippingAddress.trim()) return alert("Enter shipping address");
-    if (!checkout.paymentMethod) return alert("Select payment method");
+    if (safeCartItems.length === 0) {
+      toast.warning("Your cart is empty 🛒");
+      return;
+    }
+
+    if (!checkout.shippingAddress.trim()) {
+      toast.warning("Please enter shipping address");
+      return;
+    }
+
+    if (!checkout.paymentMethod) {
+      toast.warning("Please select a payment method");
+      return;
+    }
 
     if (checkout.paymentMethod === "Card") {
-      if (!checkout.cardNumber || !checkout.cardName || !checkout.expiry || !checkout.cvv) {
-        return alert("Enter card details");
+      if (
+        !checkout.cardNumber ||
+        !checkout.cardName ||
+        !checkout.expiry ||
+        !checkout.cvv
+      ) {
+        toast.warning("Please enter card details");
+        return;
       }
     }
 
     if (checkout.paymentMethod === "Net Banking" && !checkout.bank) {
-      return alert("Select bank");
+      toast.warning("Please select a bank");
+      return;
     }
 
     try {
@@ -83,7 +118,8 @@ function Cart() {
         paymentMethod: checkout.paymentMethod,
       });
 
-      alert("Order placed successfully");
+      toast.success("🎉 Order placed successfully!");
+
       setCheckout({
         shippingAddress: "",
         paymentMethod: "",
@@ -93,17 +129,25 @@ function Cart() {
         cvv: "",
         bank: "",
       });
+
       loadCart();
     } catch (err) {
       console.log(err.response?.data || err);
-      alert(err.response?.data || "Unable to place order");
+      toast.error(err.response?.data || "Unable to place order");
     }
   };
 
   const safeCartItems = Array.isArray(cartItems) ? cartItems : [];
 
   const itemTotal = safeCartItems.reduce((sum, item) => {
-    const price = Number(item.price || item.menuPrice || item.discountPrice || item.menuItem?.price || 0);
+    const price = Number(
+      item.price ||
+        item.menuPrice ||
+        item.discountPrice ||
+        item.menuItem?.price ||
+        0
+    );
+
     const quantity = Number(item.quantity || 0);
     return sum + price * quantity;
   }, 0);
@@ -125,19 +169,37 @@ function Cart() {
       </div>
 
       {safeCartItems.length === 0 ? (
-        <EmptyState title="Your cart is empty" text="Add some delicious food from the menu page." />
+        <EmptyState
+          title="Your cart is empty"
+          text="Add some delicious food from the menu page."
+        />
       ) : (
         <div className="cart-layout">
           <section className="cart-list">
             <div className="cart-title-row">
               <h2>Cart Items</h2>
-              <button className="danger-btn" onClick={clearCart}>Clear Cart</button>
+              <button className="danger-btn" onClick={clearCart}>
+                Clear Cart
+              </button>
             </div>
 
             {safeCartItems.map((item) => {
               const cartItemId = item.cartItemId || item.id;
-              const itemName = item.itemName || item.menuItemName || item.menuItem?.itemName || "Menu Item";
-              const price = Number(item.price || item.menuPrice || item.discountPrice || item.menuItem?.price || 0);
+
+              const itemName =
+                item.itemName ||
+                item.menuItemName ||
+                item.menuItem?.itemName ||
+                "Menu Item";
+
+              const price = Number(
+                item.price ||
+                  item.menuPrice ||
+                  item.discountPrice ||
+                  item.menuItem?.price ||
+                  0
+              );
+
               const quantity = Number(item.quantity || 0);
 
               return (
@@ -154,7 +216,9 @@ function Cart() {
                     <button onClick={() => updateQty(cartItemId, quantity - 1)}>
                       <Minus size={15} />
                     </button>
+
                     <span>{quantity}</span>
+
                     <button onClick={() => updateQty(cartItemId, quantity + 1)}>
                       <Plus size={15} />
                     </button>
@@ -162,7 +226,10 @@ function Cart() {
 
                   <strong>₹{price * quantity}</strong>
 
-                  <button className="icon-danger" onClick={() => removeItem(cartItemId)}>
+                  <button
+                    className="icon-danger"
+                    onClick={() => removeItem(cartItemId)}
+                  >
                     <Trash2 size={18} />
                   </button>
                 </div>
@@ -191,12 +258,22 @@ function Cart() {
             <textarea
               placeholder="Enter shipping address"
               value={checkout.shippingAddress}
-              onChange={(e) => setCheckout({ ...checkout, shippingAddress: e.target.value })}
+              onChange={(e) =>
+                setCheckout({
+                  ...checkout,
+                  shippingAddress: e.target.value,
+                })
+              }
             />
 
             <select
               value={checkout.paymentMethod}
-              onChange={(e) => setCheckout({ ...checkout, paymentMethod: e.target.value })}
+              onChange={(e) =>
+                setCheckout({
+                  ...checkout,
+                  paymentMethod: e.target.value,
+                })
+              }
             >
               <option value="">Select Payment Method</option>
               <option value="Cash On Delivery">Cash On Delivery</option>
@@ -207,9 +284,27 @@ function Cart() {
 
             {checkout.paymentMethod === "UPI" && (
               <div className="payment-box">
-                <h3>Scan QR to Pay</h3>
-                <div className="qr-box">₹</div>
-                <p>UPI ID: hotbyte@upi</p>
+                <h3>UPI Payment</h3>
+                <p>Scan using any UPI App</p>
+
+                <img src={qrImage} className="upi-image" alt="UPI QR" />
+
+                <div className="upi-apps">
+                  <span>🟢 Google Pay</span>
+                  <span>🟣 PhonePe</span>
+                  <span>🔵 Paytm</span>
+                  <span>⚪ BHIM</span>
+                </div>
+
+                <div className="upi-id">
+                  <span>UPI ID</span>
+                  <strong>hotbyte@upi</strong>
+                </div>
+
+                <div className="upi-amount">
+                  <span>Amount</span>
+                  <strong>₹{grandTotal}</strong>
+                </div>
               </div>
             )}
 
@@ -219,24 +314,47 @@ function Cart() {
                   placeholder="Card Number"
                   maxLength="16"
                   value={checkout.cardNumber}
-                  onChange={(e) => setCheckout({ ...checkout, cardNumber: e.target.value })}
+                  onChange={(e) =>
+                    setCheckout({
+                      ...checkout,
+                      cardNumber: e.target.value,
+                    })
+                  }
                 />
+
                 <input
                   placeholder="Card Holder Name"
                   value={checkout.cardName}
-                  onChange={(e) => setCheckout({ ...checkout, cardName: e.target.value })}
+                  onChange={(e) =>
+                    setCheckout({
+                      ...checkout,
+                      cardName: e.target.value,
+                    })
+                  }
                 />
+
                 <div className="form-grid">
                   <input
                     placeholder="MM/YY"
                     value={checkout.expiry}
-                    onChange={(e) => setCheckout({ ...checkout, expiry: e.target.value })}
+                    onChange={(e) =>
+                      setCheckout({
+                        ...checkout,
+                        expiry: e.target.value,
+                      })
+                    }
                   />
+
                   <input
                     placeholder="CVV"
                     maxLength="3"
                     value={checkout.cvv}
-                    onChange={(e) => setCheckout({ ...checkout, cvv: e.target.value })}
+                    onChange={(e) =>
+                      setCheckout({
+                        ...checkout,
+                        cvv: e.target.value,
+                      })
+                    }
                   />
                 </div>
               </div>
@@ -246,7 +364,12 @@ function Cart() {
               <div className="payment-box">
                 <select
                   value={checkout.bank}
-                  onChange={(e) => setCheckout({ ...checkout, bank: e.target.value })}
+                  onChange={(e) =>
+                    setCheckout({
+                      ...checkout,
+                      bank: e.target.value,
+                    })
+                  }
                 >
                   <option value="">Select Bank</option>
                   <option value="HDFC Bank">HDFC Bank</option>

@@ -8,6 +8,7 @@ import ResetPassword from "./pages/Login/ResetPassword";
 import Home from "./pages/Home/Home";
 import Login from "./pages/Login/Login";
 import Register from "./pages/Register/Register";
+import RestaurantReviews from "./pages/Restaurant/Reviews";
 
 import Menu from "./pages/User/Menu";
 import Cart from "./pages/User/Cart";
@@ -63,6 +64,14 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+  path="/restaurant/reviews"
+  element={
+    <ProtectedRoute allowedRole="Restaurant">
+      <RestaurantReviews />
+    </ProtectedRoute>
+  }
+/>
 
         <Route
           path="/admin/restaurants"
