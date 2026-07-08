@@ -1,9 +1,34 @@
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, Star } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 function MenuCard({ item, onAdd }) {
+  const navigate = useNavigate();
+
+  const reviews = JSON.parse(localStorage.getItem("hotbyte_reviews")) || [];
+
+  const restaurantReviews = reviews.filter(
+    (review) => Number(review.restaurantId) === Number(item.restaurantId)
+  );
+
+  const avgRating =
+    restaurantReviews.length > 0
+      ? (
+          restaurantReviews.reduce(
+            (sum, review) => sum + Number(review.rating),
+            0
+          ) / restaurantReviews.length
+        ).toFixed(1)
+      : null;
+
+  const openDetails = () => {
+    navigate(`/menu/${item.menuItemId}`, {
+      state: { item },
+    });
+  };
+
   return (
     <div className="menu-card">
-      <div className="menu-image">
+      <div className="menu-image" onClick={openDetails}>
         {item.imageUrl ? (
           <img src={item.imageUrl} alt={item.itemName} />
         ) : (
@@ -16,16 +41,23 @@ function MenuCard({ item, onAdd }) {
       </div>
 
       <div className="menu-content">
-        <h3>{item.itemName}</h3>
+        <h3 onClick={openDetails} style={{ cursor: "pointer" }}>
+          {item.itemName}
+        </h3>
 
-        <p className="menu-desc">
-          {item.description || "Delicious food item from HotByte."}
-        </p>
-
-        <div className="chips">
-          <span>{item.categoryName || "Food"}</span>
-          <span>{item.tasteInfo || "Classic"}</span>
-          <span>{item.availabilityTime || "All Day"}</span>
+        <div className="rating-row">
+          {avgRating ? (
+            <>
+              <Star size={16} fill="#FC8019" color="#FC8019" />
+              <strong>{avgRating}</strong>
+              <span>
+                ({restaurantReviews.length}{" "}
+                {restaurantReviews.length === 1 ? "Review" : "Reviews"})
+              </span>
+            </>
+          ) : (
+            <span className="no-review">No reviews yet</span>
+          )}
         </div>
 
         <div className="price-row">
@@ -35,9 +67,16 @@ function MenuCard({ item, onAdd }) {
           </div>
 
           {onAdd && (
-            <button className="add-btn" onClick={() => onAdd(item)}>
+            <button
+              className="add-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                onAdd(item);
+              }}
+              disabled={!item.isAvailable}
+            >
               <PlusCircle size={18} />
-              Add
+              {item.isAvailable ? "Add" : "Unavailable"}
             </button>
           )}
         </div>

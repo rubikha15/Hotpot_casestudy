@@ -14,10 +14,30 @@ function ForgotPassword() {
 
     try {
       const res = await API.post("/Auth/forgot-password", form);
-      setToken(res.data);
+      const message = String(res.data || "");
+
+      if (
+        message.toLowerCase().includes("user not found") ||
+        message.toLowerCase().includes("not registered")
+      ) {
+        toast.error("User not registered");
+        return;
+      }
+
+      setToken(message);
       toast.success("Reset token sent successfully 📧");
-    } catch {
-      toast.error("Unable to generate reset token");
+    } catch (err) {
+      const message =
+        err.response?.data?.message ||
+        err.response?.data?.Message ||
+        err.response?.data ||
+        "Unable to generate reset token";
+
+      if (String(message).toLowerCase().includes("user not found")) {
+        toast.error("User not registered");
+      } else {
+        toast.error(String(message));
+      }
     }
   };
 
@@ -40,7 +60,11 @@ function ForgotPassword() {
             placeholder="Registered email"
             value={form.email}
             onChange={(e) =>
-              dispatch({ type: "UPDATE", field: "email", value: e.target.value })
+              dispatch({
+                type: "UPDATE",
+                field: "email",
+                value: e.target.value,
+              })
             }
             required
           />

@@ -1,4 +1,5 @@
 import { Routes, Route } from "react-router-dom";
+import MenuDetails from "./pages/User/MenuDetails";
 
 import MainLayout from "./layouts/MainLayout";
 import DashboardLayout from "./layouts/DashboardLayout";
@@ -32,6 +33,7 @@ function App() {
       <Route element={<MainLayout />}>
         <Route path="/" element={<Home />} />
         <Route path="/menu" element={<Menu />} />
+        <Route path="/menu/:id" element={<MenuDetails />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
 

@@ -10,21 +10,52 @@ function ResetPassword() {
   const [form, dispatch] = useReducer(formReducer, resetInitialState);
 
   const updateField = (field, value) => {
-    dispatch({ type: "UPDATE", field, value });
+    dispatch({
+      type: "UPDATE",
+      field,
+      value,
+    });
   };
 
   const submitReset = async (e) => {
     e.preventDefault();
 
     try {
-      await API.post("/Auth/reset-password", form);
+      const res = await API.post("/Auth/reset-password", form);
+      const message = String(res.data || "");
+
+      if (message.toLowerCase().includes("user not found")) {
+        toast.error("User not registered");
+        return;
+      }
+
+      if (message.toLowerCase().includes("invalid reset token")) {
+        toast.error("Invalid reset token");
+        return;
+      }
+
+      if (message.toLowerCase().includes("expired")) {
+        toast.error("Reset token expired");
+        return;
+      }
+
       toast.success("Password changed successfully 🔑");
 
       setTimeout(() => {
         navigate("/login");
       }, 1200);
-    } catch {
-      toast.error("Password reset failed");
+    } catch (err) {
+      const message =
+        err.response?.data?.message ||
+        err.response?.data?.Message ||
+        err.response?.data ||
+        "Password reset failed";
+
+      if (String(message).toLowerCase().includes("user not found")) {
+        toast.error("User not registered");
+      } else {
+        toast.error(String(message));
+      }
     }
   };
 

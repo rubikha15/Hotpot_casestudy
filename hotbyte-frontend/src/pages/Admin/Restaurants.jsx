@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Store, PlusCircle, Trash2 } from "lucide-react";
+import { Store, PlusCircle } from "lucide-react";
+import { toast } from "react-toastify";
 import API from "../../api/api";
 import Loader from "../../components/common/Loader";
 
@@ -18,11 +19,13 @@ function Restaurants() {
   const loadRestaurants = async () => {
     try {
       setLoading(true);
+
       const res = await API.get("/restaurants");
-      setRestaurants(res.data);
+
+      setRestaurants(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.log(err);
-      alert("Unable to load restaurants");
+      toast.error("Unable to load restaurants");
     } finally {
       setLoading(false);
     }
@@ -38,7 +41,7 @@ function Restaurants() {
     try {
       await API.post("/restaurants", form);
 
-      alert("Restaurant added successfully");
+      toast.success("Restaurant added successfully");
 
       setForm({
         restaurantName: "",
@@ -51,20 +54,7 @@ function Restaurants() {
       loadRestaurants();
     } catch (err) {
       console.log(err);
-      alert("Unable to add restaurant");
-    }
-  };
-
-  const deleteRestaurant = async (id) => {
-    if (!confirm("Are you sure you want to delete this restaurant?")) return;
-
-    try {
-      await API.delete(`/restaurants/${id}`);
-      alert("Restaurant deleted");
-      loadRestaurants();
-    } catch (err) {
-      console.log(err);
-      alert("Unable to delete restaurant");
+      toast.error("Unable to add restaurant");
     }
   };
 
@@ -76,9 +66,11 @@ function Restaurants() {
         <div>
           <p className="tagline">Admin</p>
           <h1>Restaurant Management</h1>
-          <p>Add, view and delete restaurants.</p>
+          <p>Add restaurants and manage restaurant accounts.</p>
         </div>
       </div>
+
+      {/* Add Restaurant */}
 
       <section className="form-card">
         <h2>
@@ -91,7 +83,10 @@ function Restaurants() {
             placeholder="Restaurant Name"
             value={form.restaurantName}
             onChange={(e) =>
-              setForm({ ...form, restaurantName: e.target.value })
+              setForm({
+                ...form,
+                restaurantName: e.target.value,
+              })
             }
             required
           />
@@ -100,7 +95,10 @@ function Restaurants() {
             placeholder="Location"
             value={form.location}
             onChange={(e) =>
-              setForm({ ...form, location: e.target.value })
+              setForm({
+                ...form,
+                location: e.target.value,
+              })
             }
             required
           />
@@ -109,7 +107,10 @@ function Restaurants() {
             placeholder="Contact Number"
             value={form.contactNumber}
             onChange={(e) =>
-              setForm({ ...form, contactNumber: e.target.value })
+              setForm({
+                ...form,
+                contactNumber: e.target.value,
+              })
             }
             required
           />
@@ -119,7 +120,10 @@ function Restaurants() {
             placeholder="Restaurant Email"
             value={form.email}
             onChange={(e) =>
-              setForm({ ...form, email: e.target.value })
+              setForm({
+                ...form,
+                email: e.target.value,
+              })
             }
             required
           />
@@ -129,14 +133,21 @@ function Restaurants() {
             placeholder="Restaurant Password"
             value={form.password}
             onChange={(e) =>
-              setForm({ ...form, password: e.target.value })
+              setForm({
+                ...form,
+                password: e.target.value,
+              })
             }
             required
           />
 
-          <button className="primary-btn">Add Restaurant</button>
+          <button className="primary-btn">
+            Add Restaurant
+          </button>
         </form>
       </section>
+
+      {/* Restaurant List */}
 
       <section className="table-card">
         <h2>
@@ -144,26 +155,22 @@ function Restaurants() {
           All Restaurants
         </h2>
 
-        {restaurants.map((r) => (
-          <div className="data-row" key={r.restaurantId}>
-            <div>
-              <h3>{r.restaurantName}</h3>
-              <p>{r.location}</p>
-              <small>{r.email}</small>
-            </div>
+        {restaurants.length === 0 ? (
+          <p className="text-muted">
+            No restaurants available.
+          </p>
+        ) : (
+          restaurants.map((restaurant) => (
+            <div
+              className="data-row"
+              key={restaurant.restaurantId}
+            >
+              <h3>{restaurant.restaurantName}</h3>
 
-            <div className="row-actions">
-              <span>{r.contactNumber}</span>
-
-              <button
-                className="icon-danger"
-                onClick={() => deleteRestaurant(r.restaurantId)}
-              >
-                <Trash2 size={18} />
-              </button>
+              <strong>{restaurant.contactNumber}</strong>
             </div>
-          </div>
-        ))}
+          ))
+        )}
       </section>
     </div>
   );
