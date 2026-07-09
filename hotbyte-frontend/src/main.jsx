@@ -17,7 +17,7 @@ import { ToastContainer } from "react-toastify";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <BrowserRouter>
+    <BrowserRouter basename="/hotbyte">
       <ThemeProvider>
         <UserProvider>
           <App />
