@@ -39,5 +39,10 @@ pipeline {
                 }
             }
         }
+stage('Deploy Frontend to IIS') {
+    steps {
+        bat 'xcopy /E /Y /I hotbyte-frontend\\dist C:\\inetpub\\wwwroot\\hotbyte'
+    }
+}
     }
 }
